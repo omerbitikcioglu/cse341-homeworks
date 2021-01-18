@@ -1,9 +1,9 @@
 %option noyywrap
+%option yylineno
 
 %{
 	#include "y.tab.h"
 	int count = 0; // For counting quotation marks
-	int lines = 1; // For counting rows
 %}
 
 KW_AND 		and
@@ -37,15 +37,19 @@ OP_COMMA 	\,
 
 COMMENT 	\;\;.*
 
-VALUE 		([1-9][0-9]*|0)
+VALUE 	([1-9][0-9]*|0)
+
+VALUE_STARTS_WITH_ZERO 	([0][0-9]+)
+
 IDENTIFIER 	([a-z,A-Z][a-z,A-Z,0-9]*)
 
-ERROR 		.
+IDENTIFIER_STARTS_WITH_NUM ([0-9]+[a-z,A-Z]+)
+
+ERROR		.
 
 %%
 
-[\n]			{ ++lines; }
-[ \t]+			// Ignore whitespaces
+[\t\n ]+		// Ignore tabs, newlines, and whitespaces
 {KW_AND} 		{ return(KW_AND); }
 {KW_OR} 		{ return(KW_OR); }
 {KW_NOT} 		{ return(KW_NOT); }
@@ -71,22 +75,29 @@ ERROR 		.
 {OP_OP} 		{ return(OP_OP); }
 {OP_CP} 		{ return(OP_CP); }
 {OP_DBLMULT} 	{ return(OP_DBLMULT); }
-
 {OP_QUO}		{
 					count % 2 == 0 ? printf("OP_OC") : printf("OP_CC"); 
 					++count;
 				}
-
 {OP_COMMA} 		{ return(OP_COMMA); }
-{COMMENT} 		{ return(COMMENT); }
-{VALUE} 		{ yylval = atoi(yytext); return(VALUE); }
-{IDENTIFIER} 	{ return(IDENTIFIER); }
 
-{ERROR}			{ printf("ERROR in line %d, %s cannot be tokenized!", lines, yytext); }
+{COMMENT} 		// Ignore comments
+
+{VALUE} 		{ 
+					yylval = atoi(yytext); 
+					return(VALUE); 
+				}
+
+{IDENTIFIER} 	{
+					yylval = *yytext - 'a'; 
+					return(IDENTIFIER); 
+				}
+
+{VALUE_STARTS_WITH_ZERO}		{ printf("Value starts with 0 in line %d, '%s' cannot be tokenized!\n", yylineno, yytext); }
+{IDENTIFIER_STARTS_WITH_NUM}	{ printf("Identifier starts with number in line %d, '%s' cannot be tokenized!\n", yylineno, yytext); }
+{ERROR}							{ printf("Error in line %d, '%s' cannot be tokenized!\n", yylineno, yytext); }
 
 %%
-
-#include "y.tab.h"
 
 #ifndef yywrap
 

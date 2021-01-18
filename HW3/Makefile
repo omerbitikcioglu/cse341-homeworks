@@ -5,5 +5,5 @@ y.tab.c: gpp_interpreter.y lex.yy.c
 lex.yy.c: gpp_lexer.l
 	flex gpp_lexer.l
 clean: 
-	rm *.c *.h *.exe *.txt
+	rm *.c *.h
 
