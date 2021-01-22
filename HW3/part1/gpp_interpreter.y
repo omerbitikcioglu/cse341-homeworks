@@ -69,12 +69,12 @@ VALUES : VALUES VALUE
 
 #include "lex.yy.c"
 
-void yyerror(const char *s) 
-{ 
+void yyerror(const char *s)
+{
 	fprintf(stderr, "%s\n", s);
 }
 
-int main() 
+int main()
 {
 	yyparse();
 	return 0;
