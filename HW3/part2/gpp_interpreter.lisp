@@ -185,28 +185,93 @@
     (return-from is-identifier isIdentifier)
 )
 
+(setf start (list '("INPUT" "START") '("INPUT")))
+(setf input (list '("EXPI") '("EXPLISTI") '("EXPB")))
+(setf expi
+    (list
+        '("OP_OP" "OP_PLUS" "EXPI" "EXPI" "OP_CP")
+        '("OP_OP" "OP_MINUS" "EXPI" "EXPI" "OP_CP")
+        '("OP_OP" "OP_MULT" "EXPI" "EXPI" "OP_CP")
+        '("OP_OP" "OP_DIV" "EXPI" "EXPI" "OP_CP")
+        '("IDENTIFIER")
+        '("VALUE")
+    )
+)
+
 (defun parser ()
     (with-open-file
         (stream "parsed_lisp.txt")
-        (setf token-list
+        (setf input
             (loop for line = (read-line stream nil)
                 while line
                 collect line)))
     (setf stack '())
-    (parse token-list stack)
+    (if (parse input stack)
+        (print "Syntax OK")
+        (print "Syntax Error!"))
 )
 
 (defun parse (input stack)
-    (if (null stack) (setf stack (cons (car input) stack)))
-    
+    ; Shift input string
+    (setf stack (append stack (car input)))
+
+    ; Check stack if it contains a handle
+    ; If it contains a handle, update the stack with reduced handle
+    (setf stack (check-stack stack))
+
+    (cond ((equal stack '("START")) return t)
+            ((null input) (return nil))
+            (t (parse (cdr input) stack)))
 )
 
-(defun reduce-it (handle)
+(defun check-stack (stack)
     (cond 
-        ((null handle) return)
-        ((equal (car handle) "COMMENT") (reduce-it (cdr handle)))
+        ((setf handle (find-handle start stack)) (setf stack (reduce-handle stack handle "START")))
+        ((setf handle (find-handle input stack)) (setf stack (reduce-handle stack handle "INPUT")))
+        ((setf handle (find-handle expi stack)) (setf stack (reduce-handle stack handle "EXPI")))
+        (t (return-from check-stack stack))
+    )
+    ; Recursively check the stack until can't find any handle
+    (check-stack stack)
+)
 
+(defun find-handle (rule stack)
+    (cond 
+        ((null stack) (return-from find-handle nil))
+        ((member stack rule :test 'equal) (return-from find-handle stack))
+        (t (find-handle rule (cdr stack)))
     )
 )
 
-(gppinterpreter "helloworld.g++")
+(defun reduce-handle (stack handle reduce-to)
+
+    ; Find pos of handle in stack
+    (setf pos (find-pos stack handle))
+
+    ; Change handle with the given reduce-to string
+
+
+    ; Return new stack
+
+
+)
+
+(defun find-pos (stack handle)
+    (setf handle-pos (position (car handle) stack :from-end t))
+    (setf handle-length (length handle))
+    (if (eq handle-pos 1)
+        (return-from find-pos handle-pos)
+        (
+            (loop for i from 0 to (- handle-length 1)
+                do (if (not (equal (nth (+ i handle-pos) stack) (nth i handle))) ())
+            )
+        )
+    )
+)
+
+#| (gppinterpreter "helloworld.g++") |#
+
+(setf a (list '(1 2 3) '(4 5 6)))
+(setf b '(4 5 6))
+
+(print (position b a :test 'equal))
