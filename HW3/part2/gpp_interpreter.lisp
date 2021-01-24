@@ -185,9 +185,12 @@
     (return-from is-identifier isIdentifier)
 )
 
-(setf start (list '("INPUT" "START") '("INPUT")))
-(setf input (list '("EXPI") '("EXPLISTI") '("EXPB")))
-(setf expi
+; Reduction rules
+(setf startr (list '("INPUT" "START") '("INPUT")))
+
+(setf inputr (list '("EXPI") '("EXPLISTI") '("EXPB")))
+
+(setf expir
     (list
         '("OP_OP" "OP_PLUS" "EXPI" "EXPI" "OP_CP")
         '("OP_OP" "OP_MINUS" "EXPI" "EXPI" "OP_CP")
@@ -195,8 +198,48 @@
         '("OP_OP" "OP_DIV" "EXPI" "EXPI" "OP_CP")
         '("IDENTIFIER")
         '("VALUE")
+        '("OP_OP" "IDENTIFIER" "EXPLISTI" "OP_CP")
+        '("OP_OP" "KW_DEFFUN" "IDENTIFIER" "IDLIST" "EXPLISTI" "OP_CP")
+        '("OP_OP" "KW_IF" "EXPB" "EXPLISTI" "OP_CP")
+        '("OP_OP" "KW_IF" "EXPB" "EXPLISTI" "EXPLISTI" "OP_CP")
+        '("OP_OP" "KW_FOR" "OP_OP" "IDENTIFIER" "EXPI" "EXPI" "OP_CP" "EXPLISTI" "OP_CP")
+        '("OP_OP" "KW_SET" "IDENTIFIER" "EXPI" "OP_CP")
     )
 )
+
+(setf idlistr (list '("OP_OP" "IDS" "OP_CP")))
+(setf idsr (list '("IDS" "IDENTIFIER") '("IDENTIFIER IDENTIFIER")))
+
+(setf expbr
+    (list
+        '("OP_OP" "KW_AND" "EXPB" "EXPB" "OP_CP")
+        '("OP_OP" "KW_OR" "EXPB" "EXPB" "OP_CP")
+        '("OP_OP" "KW_NOT" "EXPB" "OP_CP")
+        '("OP_OP" "KW_EQUAL" "EXPB" "EXPB" "OP_CP")
+        '("OP_OP" "KW_EQUAL" "EXPI" "EXPI" "OP_CP")
+        '("BinaryValue")
+    )
+)
+
+(setf binary-valuer (list '("KW_TRUE") '("KW_FALSE")))
+
+(setf explistir
+    (list
+        '("OP_OP" "KW_CONCAT" "EXPLISTI" "EXPLISTI" "OP_CP")
+        '("OP_OP" "KW_APPEND" "EXPI" "EXPLISTI" "OP_CP")
+        '("LISTVALUE")
+    )
+)
+
+(setf listvaluer 
+    (list 
+        '("OP_OP" "KW_LIST" "VALUES" "OP_CP")
+        '("OP_OP" "KW_LIST" "OP_CP")
+        '("KW_NIL")
+    )
+)
+
+(setf valuesr (list '("VALUES" "VALUE") '("VALUE" "VALUE")))
 
 (defun parser ()
     (with-open-file
@@ -213,26 +256,46 @@
 
 (defun parse (input stack)
     ; Shift input string
-    (setf stack (append stack (car input)))
-
+    (if (not (equal (car input) "COMMENT"))
+        (setf stack (append stack (list(car input)))))
+    (setf input (cdr input))
+    (print stack)
     ; Check stack if it contains a handle
     ; If it contains a handle, update the stack with reduced handle
     (setf stack (check-stack stack))
-
-    (cond ((equal stack '("START")) return t)
-            ((null input) (return nil))
-            (t (parse (cdr input) stack)))
+    (setf stack (final-check-stack stack))
+    (print stack)
+    (cond ((equal stack '("START")) (return-from parse t))
+            ((null (car input)) (return-from parse nil))
+            (t (parse input stack)))
 )
 
 (defun check-stack (stack)
-    (cond 
-        ((setf handle (find-handle start stack)) (setf stack (reduce-handle stack handle "START")))
-        ((setf handle (find-handle input stack)) (setf stack (reduce-handle stack handle "INPUT")))
-        ((setf handle (find-handle expi stack)) (setf stack (reduce-handle stack handle "EXPI")))
+    (cond
+        ((setf handle (find-handle expir stack)) (setf stack (reduce-handle stack handle "EXPI")))
+        ((setf handle (find-handle idlistr stack)) (setf stack (reduce-handle stack handle "IDLIST")))
+        ((setf handle (find-handle idsr stack)) (setf stack (reduce-handle stack handle "IDS")))
+        ((setf handle (find-handle expbr stack)) (setf stack (reduce-handle stack handle "EXPB")))
+        ((setf handle (find-handle binary-valuer stack)) (setf stack (reduce-handle stack handle "BinaryValue")))
+        ((setf handle (find-handle explistir stack)) (setf stack (reduce-handle stack handle "EXPLISTI")))
+        ((setf handle (find-handle listvaluer stack)) (setf stack (reduce-handle stack handle "LISTVALUE")))
+        ((setf handle (find-handle valuesr stack)) (setf stack (reduce-handle stack handle "VALUES")))
         (t (return-from check-stack stack))
     )
+    (remove nil stack)
+
     ; Recursively check the stack until can't find any handle
     (check-stack stack)
+)
+
+(defun final-check-stack (stack)
+    (cond
+        ((member stack inputr :test 'equal) (setf stack (reduce-handle stack stack "INPUT")))
+        ((member stack startr :test 'equal) (setf stack (reduce-handle stack stack "START")))
+        (t (return-from final-check-stack stack))
+    )
+    (remove nil stack)
+    (final-check-stack stack)
 )
 
 (defun find-handle (rule stack)
@@ -246,32 +309,20 @@
 (defun reduce-handle (stack handle reduce-to)
 
     ; Find pos of handle in stack
-    (setf pos (find-pos stack handle))
+    (setf pos (position (car handle) stack :from-end t))
 
     ; Change handle with the given reduce-to string
-
-
-    ; Return new stack
-
-
-)
-
-(defun find-pos (stack handle)
-    (setf handle-pos (position (car handle) stack :from-end t))
+    (setf (nth pos stack) reduce-to)
     (setf handle-length (length handle))
-    (if (eq handle-pos 1)
-        (return-from find-pos handle-pos)
-        (
-            (loop for i from 0 to (- handle-length 1)
-                do (if (not (equal (nth (+ i handle-pos) stack) (nth i handle))) ())
-            )
-        )
-    )
+    (setf junk-part-length (- handle-length 1))
+
+    (loop for i from (+ pos 1) to (+ pos junk-part-length)
+        do (if (nth (+ i junk-part-length) stack)
+                (setf (nth i stack) (nth (+ i junk-part-length) stack))
+                (setf (nth i stack) nil)))
+    (delete nil stack)
+    ; Return new stack
+    (return-from reduce-handle stack)
 )
 
-#| (gppinterpreter "helloworld.g++") |#
-
-(setf a (list '(1 2 3) '(4 5 6)))
-(setf b '(4 5 6))
-
-(print (position b a :test 'equal))
+(gppinterpreter)
