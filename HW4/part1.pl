@@ -22,7 +22,14 @@ flight(ankara, van).
 flight(van, rize).
 
 % rules
-route(A, B) :- flight(A, B), A \= B.
-route(A, B) :- flight(B, A), A \= B.
-route(A, B) :- flight(A, X), route(X, B), A \= B.
-route(A, B) :- flight(B, X), route(X, A), A \= B.
+route(A, B) :-
+    flight(A, B), A \= B.
+
+route(A, B) :-
+    flight(B, A), A \= B.
+
+route(A, B) :-
+    flight(A, X), route(X, B), A \= B.
+
+route(A, B) :-
+    flight(B, X), route(X, A), A \= B.
