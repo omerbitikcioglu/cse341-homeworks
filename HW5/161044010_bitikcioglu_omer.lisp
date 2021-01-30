@@ -41,7 +41,15 @@
     (return-from check-line typeof)))
 
 (defun answer-query (query)
+    (print (car(car(cdr query))))
+    (print (car(car(car facts))))
+    (print (car(car(car predicates))))
 
+    (loop for i from 0 to (- (length facts) 1) do
+        (if (equal (car(car(cdr query))) (car(car(nth i facts))))
+            (print "nice")
+        )
+    )
 )
 
 (program)
