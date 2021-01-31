@@ -7,13 +7,18 @@
 (setf facts (list))
 (setf predicates (list))
 (setf answers (list))
-(setf variables (list))
 
 (defun program ()
     (setf horn-clauses 
         (read-file "input.txt"))
     (parse-clauses horn-clauses)
-    (print answers))
+    (print-answers-to-file "output.txt")
+)
+
+(defun print-answers-to-file (output-file)
+    "Prints answers list to output file"
+    (with-open-file (stream output-file :direction :output)
+        (format stream "~D" answers)))
 
 (defun read-file (input-file)
     "Reads from given input file"
