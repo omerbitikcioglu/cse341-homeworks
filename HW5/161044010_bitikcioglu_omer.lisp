@@ -53,34 +53,25 @@
     (loop for i from 0 to (- (length facts) 1) do
         (if (equal (car(car(cdr query))) (car(car(nth i facts)))) ; Check if it's querying for a fact
             (if (equal (car(car(cdr(car(cdr query))))) (car(car(cdr(car(nth i facts)))))) ; Check if query is correct
-                (cond ; Compare the integer value of the query to the facts integer value
-                    ((and (null (car(cdr(car(cdr(car(cdr query))))))) (null (car(cdr(car(cdr(car(nth i facts))))))))
-                        (return-from check-facts t))
-                    (t (if
-                        (eq (car(cdr(car(cdr(car(cdr query)))))) (car(cdr(car(cdr(car(nth i facts)))))))
-                        (return-from check-facts t))))
-                (if (upper-case-p(char (car(car(cdr(car(cdr query))))) 0))
+                (if ; Compare the integer value of the query to the fact's integer value
+                    (eq (car(cdr(car(cdr(car(cdr query)))))) (car(cdr(car(cdr(car(nth i facts)))))))
+                    (return-from check-facts t))
+                (if ; Check if it is a variable
+                    (and 
+                        (upper-case-p(char (car(car(cdr(car(cdr query))))) 0))
+                        (eq (car(cdr(car(cdr(car(cdr query)))))) (car(cdr(car(cdr(car(nth i facts))))))))
                     (progn 
                         ;(format T "~S = ~S ~%" (car(car(cdr(car(cdr query))))) (car(car(cdr(car(nth i facts))))))
-                        (setf found (append found (list(car(car(cdr(car(nth i facts))))))))
-                    )
-                )
-            )
-        )
-    )
-    (return-from check-facts found)
-)
+                        (setf found (append found (list(car(car(cdr(car(nth i facts)))))))))))))
+    (return-from check-facts found))
 
 (defun check-fact (fact)
     (loop for i from 0 to (- (length facts) 1) do
         (if (equal (car fact) (car(car(nth i facts)))) ; Check if facts are matches
             (if (equal (car(car(cdr fact))) (car(car(cdr(car(nth i facts)))))) ; Check if fact is correct
-                (cond ; Compare the integer value of the fact to the facts integer value
-                    ((and (null (car(cdr(car(cdr fact))))) (null (car(cdr(car(cdr(car(nth i facts))))))))
-                        (return-from check-fact t))
-                    (t (if
-                        (eq (car(cdr(car(cdr fact)))) (car(cdr(car(cdr(car(nth i facts)))))))
-                        (return-from check-fact t))))))))
+                (if ; Compare the integer value of the query to the fact's integer value
+                    (eq (car(cdr(car(cdr fact)))) (car(cdr(car(cdr(car(nth i facts)))))))
+                    (return-from check-fact t))))))
 
 (defun check-predicates (query)
     (if (eq (car query) nil)
