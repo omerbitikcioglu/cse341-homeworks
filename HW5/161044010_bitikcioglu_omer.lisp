@@ -7,7 +7,6 @@
 (setf facts (list))
 (setf predicates (list))
 (setf answers (list))
-(setf variables (list))
 
 (defun program ()
     (setf horn-clauses 
@@ -49,6 +48,7 @@
         (t (return-from answer-query nil))))
 
 (defun check-facts (query)
+    (print query)
     (setf found (list))
     (loop for i from 0 to (- (length facts) 1) do
         (if (equal (car(car(cdr query))) (car(car(nth i facts)))) ; Check if it's querying for a fact
@@ -71,7 +71,21 @@
             (if (equal (car(car(cdr fact))) (car(car(cdr(car(nth i facts)))))) ; Check if fact is correct
                 (if ; Compare the integer value of the query to the fact's integer value
                     (eq (car(cdr(car(cdr fact)))) (car(cdr(car(cdr(car(nth i facts)))))))
-                    (return-from check-fact t))))))
+                    (return-from check-fact t)
+                )
+                (if ; Check if it is a variable
+                    (and 
+                        (upper-case-p (char (car(car(cdr fact))) 0))
+                        (eq (car(cdr(car(cdr fact)))) (car(cdr(car(cdr(car(nth i facts))))))))
+                    (progn 
+                        (print "varrrrrr")
+                        ;(format T "~S = ~S ~%" (car(car(cdr(car(cdr query))))) (car(car(cdr(car(nth i facts))))))
+                        (setf found (append found (list(car(car(cdr(car(nth i facts))))))))))
+            )
+        )
+    )
+    (return-from check-fact found)
+)
 
 (defun check-predicates (query)
     (if (eq (car query) nil)
@@ -81,18 +95,28 @@
                 (equal (car query) (car(car(nth i predicates)))) 
                 (equal (car(cdr(car(cdr query)))) (car(cdr(car(cdr(car(nth i predicates)))))))) 
             (if (answer-predicate (nth i predicates) query)
-                (return-from check-predicates t)))))
+                (return-from check-predicates found)))))
 
 (defun answer-predicate (predicate query-body)
     (setf predicate-body (car(cdr predicate)))
+    (print predicate-body)
     ;(setf query-body (car(cdr query)))
     (setf name (car(car(cdr query-body))))
-
+    (print name)
     (loop for i from 0 to (- (length predicate-body) 1) do
-        (setf (car(car(cdr(nth i predicate-body)))) name)
-        (if (and (null (check-fact (nth i predicate-body))) (null (check-predicates (nth i predicate-body))))
-            (return-from answer-predicate nil)))
-
-    (return-from answer-predicate t))
+        (cond
+            (
+                (not (upper-case-p (char name 0))) 
+                (setf (car(car(cdr(nth i predicate-body)))) name)
+            )
+            (
+                (and (null (check-fact (nth i predicate-body))) (null (check-predicates (nth i predicate-body))))
+                (return-from answer-predicate nil)
+            )
+        )
+    )
+    (return-from answer-predicate t)
+)
 
 (program)
+
