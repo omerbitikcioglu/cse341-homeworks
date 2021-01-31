@@ -7,15 +7,13 @@
 (setf facts (list))
 (setf predicates (list))
 (setf answers (list))
+(setf variables (list))
 
 (defun program ()
     (setf horn-clauses 
         (read-file "input.txt"))
     (parse-clauses horn-clauses)
-    (print facts)
-    (print predicates)
-    (print answers)
-)
+    (print answers))
 
 (defun read-file (input-file)
     "Reads from given input file"
@@ -46,35 +44,36 @@
 
 (defun answer-query (query)
     (cond
-        ((check-facts query) (return-from answer-query t))
-        ((check-predicates query) (return-from answer-query t))
-        (t (return-from answer-query nil)))
-)
+        ((setf a (check-facts query)) (return-from answer-query a))
+        ((setf b (check-predicates query)) (return-from answer-query b))
+        (t (return-from answer-query nil))))
 
 (defun check-facts (query)
+    (setf found (list))
     (loop for i from 0 to (- (length facts) 1) do
         (if (equal (car(car(cdr query))) (car(car(nth i facts)))) ; Check if it's querying for a fact
             (if (equal (car(car(cdr(car(cdr query))))) (car(car(cdr(car(nth i facts)))))) ; Check if query is correct
-                (cond ; Compare the integer value of the query to the facts integer value
-                    ((and (null (car(cdr(car(cdr(car(cdr query))))))) (null (car(cdr(car(cdr(car(nth i facts))))))))
-                        (return-from check-facts t))
-                    (t (if
-                        (eq (car(cdr(car(cdr(car(cdr query)))))) (car(cdr(car(cdr(car(nth i facts)))))))
-                        (return-from check-facts t))))))))
+                (if ; Compare the integer value of the query to the fact's integer value
+                    (eq (car(cdr(car(cdr(car(cdr query)))))) (car(cdr(car(cdr(car(nth i facts)))))))
+                    (return-from check-facts t))
+                (if ; Check if it is a variable
+                    (and 
+                        (upper-case-p(char (car(car(cdr(car(cdr query))))) 0))
+                        (eq (car(cdr(car(cdr(car(cdr query)))))) (car(cdr(car(cdr(car(nth i facts))))))))
+                    (progn 
+                        ;(format T "~S = ~S ~%" (car(car(cdr(car(cdr query))))) (car(car(cdr(car(nth i facts))))))
+                        (setf found (append found (list(car(car(cdr(car(nth i facts)))))))))))))
+    (return-from check-facts found))
 
 (defun check-fact (fact)
     (loop for i from 0 to (- (length facts) 1) do
         (if (equal (car fact) (car(car(nth i facts)))) ; Check if facts are matches
             (if (equal (car(car(cdr fact))) (car(car(cdr(car(nth i facts)))))) ; Check if fact is correct
-                (cond ; Compare the integer value of the fact to the facts integer value
-                    ((and (null (car(cdr(car(cdr fact))))) (null (car(cdr(car(cdr(car(nth i facts))))))))
-                        (return-from check-fact t))
-                    (t (if
-                        (eq (car(cdr(car(cdr fact)))) (car(cdr(car(cdr(car(nth i facts)))))))
-                        (return-from check-fact t))))))))
+                (if ; Compare the integer value of the query to the fact's integer value
+                    (eq (car(cdr(car(cdr fact)))) (car(cdr(car(cdr(car(nth i facts)))))))
+                    (return-from check-fact t))))))
 
 (defun check-predicates (query)
-    (print query)
     (if (eq (car query) nil)
         (setf query (car(cdr query))))
     (loop for i from 0 to (- (length predicates) 1) do
@@ -82,10 +81,7 @@
                 (equal (car query) (car(car(nth i predicates)))) 
                 (equal (car(cdr(car(cdr query)))) (car(cdr(car(cdr(car(nth i predicates)))))))) 
             (if (answer-predicate (nth i predicates) query)
-                (return-from check-predicates t))
-        )
-    )
-)
+                (return-from check-predicates t)))))
 
 (defun answer-predicate (predicate query-body)
     (setf predicate-body (car(cdr predicate)))
@@ -95,11 +91,8 @@
     (loop for i from 0 to (- (length predicate-body) 1) do
         (setf (car(car(cdr(nth i predicate-body)))) name)
         (if (and (null (check-fact (nth i predicate-body))) (null (check-predicates (nth i predicate-body))))
-            (return-from answer-predicate nil)
-        )
-    )
-    
-    (return-from answer-predicate t)
-)
+            (return-from answer-predicate nil)))
+
+    (return-from answer-predicate t))
 
 (program)
