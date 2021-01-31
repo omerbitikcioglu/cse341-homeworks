@@ -75,24 +75,26 @@
 
 (defun check-predicates (query)
     (print query)
+    (if (eq (car query) nil)
+        (setf query (car(cdr query))))
     (loop for i from 0 to (- (length predicates) 1) do
         (if (and ; Find the appropriate predicate from predicates
-                (equal (car(car(cdr query))) (car(car(nth i predicates)))) 
-                (equal (car(cdr(car(cdr(car(cdr query)))))) (car(cdr(car(cdr(car(nth i predicates)))))))) 
-            (if (answer-predicate (car(cdr(nth i predicates))) (car(cdr query)))
+                (equal (car query) (car(car(nth i predicates)))) 
+                (equal (car(cdr(car(cdr query)))) (car(cdr(car(cdr(car(nth i predicates)))))))) 
+            (if (answer-predicate (nth i predicates) query)
                 (return-from check-predicates t))
         )
     )
 )
 
-(defun answer-predicate (predicate-body query-body)
-    #| (print predicate-body)
-    (print query-body) |#
+(defun answer-predicate (predicate query-body)
+    (setf predicate-body (car(cdr predicate)))
+    ;(setf query-body (car(cdr query)))
     (setf name (car(car(cdr query-body))))
 
     (loop for i from 0 to (- (length predicate-body) 1) do
         (setf (car(car(cdr(nth i predicate-body)))) name)
-        (if (null (check-fact (nth i predicate-body)))
+        (if (and (null (check-fact (nth i predicate-body))) (null (check-predicates (nth i predicate-body))))
             (return-from answer-predicate nil)
         )
     )
