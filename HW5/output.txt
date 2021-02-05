@@ -1,1 +1,0 @@
-((human sempaze) (horse cat human) T T NIL NIL T)
